@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>miniGU WASM Demo</title>
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>miniGU WASM Demo</h1>
+      <p>
+        This page creates an in-memory <code>MiniGuDb</code> in the browser and runs a few sample
+        statements.
+      </p>
+
+      <section>
+        <h2>Controls</h2>
+        <p>
+          <button id="reset-db" type="button">Reset DB</button>
+          <button id="run-demo" type="button">Run Smoke Demo</button>
+          <button id="run-json" type="button">Run JSON</button>
+          <button id="run-table" type="button">Run Table</button>
+        </p>
+        <p>
+          <button data-preset="seed" class="preset-button" type="button">Seed Script</button>
+          <button data-preset="match" class="preset-button" type="button">MATCH Query</button>
+          <button data-preset="inspect" class="preset-button" type="button">Inspect Query</button>
+        </p>
+      </section>
+
+      <section>
+        <h2>Status</h2>
+        <p><strong id="status-badge">Idle</strong></p>
+        <p id="status-text">Serve this directory over HTTP, then run the smoke demo.</p>
+      </section>
+
+      <section>
+        <h2>Input</h2>
+        <p>
+          One statement per line. All setup statements run first. The last statement is rendered by
+          the button you click: <code>Run JSON</code> or <code>Run Table</code>.
+        </p>
+        <textarea id="script-input" spellcheck="false"></textarea>
+      </section>
+
+      <section>
+        <h2>Latest Query</h2>
+        <pre id="last-query">No query yet</pre>
+      </section>
+
+      <section>
+        <h2>Table Output</h2>
+        <pre id="output-table"></pre>
+      </section>
+
+      <section>
+        <h2>JSON Output</h2>
+        <pre id="output-json"></pre>
+      </section>
+
+      <section>
+        <h2>Log</h2>
+        <pre id="output-log"></pre>
+      </section>
+    </main>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

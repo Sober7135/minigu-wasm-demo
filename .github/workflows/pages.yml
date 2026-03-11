@@ -1,0 +1,73 @@
+name: Deploy GitHub Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+env:
+  SOURCE_REPOSITORY: TuGraph-family/miniGU
+  SOURCE_REF: 25-support-wasm
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout demo repository
+        uses: actions/checkout@v5
+
+      - name: Checkout source repository
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ env.SOURCE_REF }}
+          path: source
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Add wasm target
+        working-directory: source
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-bindgen CLI
+        working-directory: source
+        run: cargo install wasm-bindgen-cli --version 0.2.105
+
+      - name: Build minigu-wasm
+        working-directory: source
+        run: cargo build -p minigu-wasm --target wasm32-unknown-unknown --release
+
+      - name: Assemble Pages site
+        run: |
+          mkdir -p site/pkg
+          cp index.html main.js style.css .nojekyll site/
+          "$HOME/.cargo/bin/wasm-bindgen" \
+            --target web \
+            --out-dir site/pkg \
+            source/target/wasm32-unknown-unknown/release/minigu_wasm.wasm
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
