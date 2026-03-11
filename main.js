@@ -5,7 +5,8 @@ SESSION SET GRAPH g`;
 
 const MATCH_QUERY = `MATCH (n:PERSON) RETURN n`;
 
-const INSPECT_QUERY = `MATCH (n:PERSON) RETURN n LIMIT 2`;
+const DEFAULT_SCRIPT = `${SEED_SCRIPT}
+${MATCH_QUERY}`;
 
 const state = {
   db: null,
@@ -20,13 +21,11 @@ const elements = {
   outputLog: document.querySelector("#output-log"),
   outputTable: document.querySelector("#output-table"),
   resetDb: document.querySelector("#reset-db"),
-  runDemo: document.querySelector("#run-demo"),
   runJson: document.querySelector("#run-json"),
   runTable: document.querySelector("#run-table"),
   scriptInput: document.querySelector("#script-input"),
   statusBadge: document.querySelector("#status-badge"),
   statusText: document.querySelector("#status-text"),
-  presetButtons: [...document.querySelectorAll(".preset-button")],
 };
 
 boot().catch((error) => {
@@ -39,8 +38,8 @@ async function boot() {
   await init();
   recreateDb();
   wireUi();
-  elements.scriptInput.value = `${SEED_SCRIPT}\n${MATCH_QUERY}`;
-  setStatus("ok", "Ready", "WASM loaded. You can run the smoke demo or execute statements manually.");
+  elements.scriptInput.value = DEFAULT_SCRIPT;
+  setStatus("ok", "Ready", "WASM loaded. You can run the default script or execute statements manually.");
   appendLog("wasm module initialized");
 }
 
@@ -53,10 +52,6 @@ function wireUi() {
     setStatus("ok", "DB reset", "Created a fresh in-memory MiniGuDb instance.");
   });
 
-  elements.runDemo.addEventListener("click", () => {
-    void withRunLock(runSmokeDemo);
-  });
-
   elements.runJson.addEventListener("click", () => {
     void withRunLock(() => runScript("json"));
   });
@@ -64,24 +59,6 @@ function wireUi() {
   elements.runTable.addEventListener("click", () => {
     void withRunLock(() => runScript("table"));
   });
-
-  for (const button of elements.presetButtons) {
-    button.addEventListener("click", () => {
-      switch (button.dataset.preset) {
-        case "seed":
-          elements.scriptInput.value = SEED_SCRIPT;
-          break;
-        case "match":
-          elements.scriptInput.value = MATCH_QUERY;
-          break;
-        case "inspect":
-          elements.scriptInput.value = `${SEED_SCRIPT}\n${INSPECT_QUERY}`;
-          break;
-        default:
-          break;
-      }
-    });
-  }
 }
 
 function recreateDb() {
@@ -94,24 +71,6 @@ function recreateDb() {
   renderTable("No results yet.");
   renderJson({ note: "Run a query to inspect JSON output." });
   appendLog("created fresh MiniGuDb()");
-}
-
-function runSmokeDemo() {
-  recreateDb();
-  setStatus("busy", "Running demo", "Creating sample graph data and executing MATCH query...");
-
-  try {
-    executeJsonStatement(`CALL create_test_graph_data("g", 5)`);
-    executeJsonStatement("SESSION SET GRAPH g");
-    executeDualReadStatement(MATCH_QUERY);
-    setStatus(
-      "ok",
-      "Smoke demo passed",
-      "The browser created an in-memory graph and returned query results from WASM."
-    );
-  } catch (error) {
-    setStatus("error", "Smoke demo failed", formatError(error));
-  }
 }
 
 function runScript(mode) {
@@ -158,27 +117,6 @@ function executeJsonStatement(statement) {
     renderTable("");
     renderJson(JSON.parse(jsonText));
     appendLog("< ok");
-  } catch (error) {
-    renderJson({ error: formatError(error) });
-    appendLog(`< error: ${formatError(error)}`);
-    throw error;
-  }
-}
-
-function executeDualReadStatement(statement) {
-  if (!state.ready || state.db === null) {
-    throw new Error("MiniGuDb is not ready yet.");
-  }
-
-  elements.lastQuery.textContent = statement;
-  appendLog(`> ${statement}`);
-
-  try {
-    const tableText = state.db.query_table(statement);
-    const jsonText = state.db.query_json(statement);
-    renderTable(tableText);
-    renderJson(JSON.parse(jsonText));
-    appendLog("< ok (table + json)");
   } catch (error) {
     renderJson({ error: formatError(error) });
     appendLog(`< error: ${formatError(error)}`);
@@ -247,13 +185,9 @@ function setStatus(kind, badgeText, detail) {
 
 function setControlsDisabled(disabled) {
   elements.resetDb.disabled = disabled;
-  elements.runDemo.disabled = disabled;
   elements.runJson.disabled = disabled;
   elements.runTable.disabled = disabled;
   elements.scriptInput.disabled = disabled;
-  for (const button of elements.presetButtons) {
-    button.disabled = disabled;
-  }
 }
 
 function formatError(error) {
