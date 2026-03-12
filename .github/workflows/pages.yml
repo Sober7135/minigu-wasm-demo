@@ -4,6 +4,8 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
+  repository_dispatch:
+    types: [source-updated]
 
 env:
   SOURCE_REPOSITORY: TuGraph-family/miniGU
@@ -28,9 +30,16 @@ jobs:
       - name: Checkout source repository
         uses: actions/checkout@v5
         with:
-          repository: ${{ env.SOURCE_REPOSITORY }}
-          ref: ${{ env.SOURCE_REF }}
+          repository: ${{ github.event.client_payload.source_repository || env.SOURCE_REPOSITORY }}
+          ref: ${{ github.event.client_payload.source_sha || github.event.client_payload.source_ref || env.SOURCE_REF }}
           path: source
+
+      - name: Show source revision
+        run: |
+          echo "event: ${{ github.event_name }}"
+          echo "source repository: ${{ github.event.client_payload.source_repository || env.SOURCE_REPOSITORY }}"
+          echo "source ref: ${{ github.event.client_payload.source_ref || env.SOURCE_REF }}"
+          echo "source sha: ${{ github.event.client_payload.source_sha || 'not provided' }}"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
